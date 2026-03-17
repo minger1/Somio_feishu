@@ -1,0 +1,23 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+ENV/
+
+# PyTest
+.pytest_cache/
+.pytest_cache*
+report/
+.html
+
+# Logs
+logs/*.log
+
+# IDE
+.idea/
+.vscode/
+
+# Project Specific
+config_local.py

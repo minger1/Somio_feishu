@@ -4,9 +4,9 @@ import subprocess
 import time
 from playwright.sync_api import sync_playwright, expect
 from playwright_stealth import Stealth
-from config import ENVIRONMENTS, DEFAULT_ENV, DEFAULT_LANGUAGE, LOGIN_EMAIL, LOGIN_PASSWORD, get_language_urls
-from logger import logger
-from locators import Locators
+from config.settings import ENVIRONMENTS, DEFAULT_ENV, DEFAULT_LANGUAGE, LOGIN_EMAIL, LOGIN_PASSWORD, get_language_urls
+from utils import logger
+from config.locators import Locators
 from pages.login_page import LoginPage
 
 # 支持的浏览器引擎
@@ -68,7 +68,7 @@ def pytest_generate_tests(metafunc):
                 {
                     "lang": lang,
                     "env": env,
-                    "base_url": language_urls[lang]["base_url"],
+                    "generate_url": language_urls[lang]["generate_url"],
                 },
                 id=f"{env}-{lang}"
             )
@@ -123,25 +123,36 @@ def browser(browser_engine, request):
 @pytest.fixture(scope="function")
 def page(browser, lang_urls, browser_engine):
     """普通页面，带 Stealth"""
-    context = browser.new_context(no_viewport=True)
+    context = browser.new_context(no_viewport=True, permissions=['clipboard-read', 'clipboard-write'])
     if browser_engine in ["chromium", "firefox", "msedge", "webkit"]:
         context.on("page", Stealth().apply_stealth_sync)
     p = context.new_page()
-    p.set_default_timeout(10000)
+    p.set_default_timeout(30000)
+
+    p.goto(lang_urls["generate_url"], timeout=60000)
+    p.locator(Locators.START_CREATING_BTN).click()
+    p.wait_for_load_state("networkidle", timeout=30000)
+    
     yield p
     context.close()
 
 @pytest.fixture(scope="session")
 def authenticated_context(browser, lang_urls, browser_engine):
     """已登录的浏览器上下文（需根据 Somio 项目实现登录流程）"""
-    context = browser.new_context(no_viewport=True)
+    context = browser.new_context(no_viewport=True, permissions=['clipboard-read', 'clipboard-write'])
     if browser_engine in ["chromium", "firefox", "msedge", "webkit"]:
         context.on("page", Stealth().apply_stealth_sync)
     p = context.new_page()
+
+
     
     # 登录流程
-    logger.info(f"正在导航至首页: {lang_urls['base_url']}")
-    p.goto(lang_urls["base_url"])
+    logger.info(f"正在导航至首页: {lang_urls['generate_url']}")
+    p.goto(lang_urls["generate_url"])
+    
+    logger.info("点击 'start creating' 进入功能页")
+    p.locator(Locators.START_CREATING_BTN).click()
+    p.wait_for_load_state("domcontentloaded")
     
     login_page = LoginPage(p)
     login_page.login(LOGIN_EMAIL, LOGIN_PASSWORD)
@@ -150,11 +161,21 @@ def authenticated_context(browser, lang_urls, browser_engine):
     context.close()
 
 @pytest.fixture(scope="function")
-def logged_in_page(authenticated_context):
+def logged_in_page(authenticated_context, lang_urls):
     """生成已登录页面"""
     p = authenticated_context.new_page()
+    p.set_default_timeout(10000)
+    
+    logger.info(f"正在导航至首页: {lang_urls['generate_url']}")
+    p.goto(lang_urls["generate_url"])
+    
+    logger.info("点击 'start creating' 进入功能页")
+    p.locator(Locators.START_CREATING_BTN).click()
+    p.wait_for_load_state("domcontentloaded")
+    
     yield p
     p.close()
+
 
 # ==================== 错误处理与截图 ====================
 

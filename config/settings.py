@@ -3,6 +3,8 @@
 LOGIN_EMAIL = "ljkjtest20260317@qq.com"
 LOGIN_PASSWORD = "123456"
 
+VERIFICATION_CODE = "999123" #通用验证码
+
 # ==================== 环境配置 ====================
 # key: 环境名（命令行 --env 传入）
 # value: 域名前缀
@@ -19,20 +21,19 @@ def get_language_urls(base_domain: str, env: str = DEFAULT_ENV) -> dict:
     根据域名和语言返回各个页面的 URL。
     这里仅保留一个基础模板，具体路径请根据 Somio 项目需求添加。
     """
-    return {
-        "en": {
-            "base_url": f"{base_domain}/generate/",
-            "upgrade_url": f"{base_domain}/pricing/music-generator/",
-            
-        },
-        "zh-cn": {
-            "base_url": f"{base_domain}/zh-cn/generate/",
-            "upgrade_url": f"{base_domain}/zh-cn/pricing/music-generator/",
+    languages = [
+        "en", "de", "it", "es", "pt", "fr", "nl", "ko", "ja", "zh-cn", "zh-tw", "ro", "pl"
+    ]
+    
+    urls = {}
+    for lang in languages:
+        # 英文直接使用 base_domain，其他语言拼接 /{lang}
+        prefix = base_domain if lang == "en" else f"{base_domain}/{lang}"
+        urls[lang] = {
+            "generate_url":   f"{prefix}",
         }
-    }
+        
+    return urls
 
 # 默认语言（不传 --language 时使用）
 DEFAULT_LANGUAGE = "en"
-
-# 初始化映射
-# LANGUAGE_URLS = get_language_urls(ENVIRONMENTS[DEFAULT_ENV], DEFAULT_ENV)

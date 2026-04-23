@@ -1,10 +1,11 @@
 import sys
+import logging
 from pathlib import Path
 from loguru import logger
 
 # ============== 配置日志 ============== #
 # 日志存放目录
-LOG_DIR = Path(__file__).parent / "logs"
+LOG_DIR = Path(__file__).parent.parent / "logs"
 LOG_DIR.mkdir(parents=True, exist_ok=True)
 
 # 基础日志文件名
@@ -22,12 +23,24 @@ FORMAT = (
 # 移除默认的控制台输出
 logger.remove()
 
-# 添加控制台输出
+# 将 loguru 日志重定向到标准 logging，以便 pytest 捕获并显示在报告中
+def sink_to_logging(message):
+    record = message.record
+    level_name = record["level"].name
+    level = logging.getLevelName(level_name)
+    if not isinstance(level, int):
+        level = logging.INFO
+    logging.getLogger("loguru").log(level, record["message"])
+
+logger.add(sink_to_logging, level="INFO", enqueue=True)
+
+# 添加控制台输出 (让 pytest 能够捕获并在必要时进行输出)
 logger.add(
     sys.stdout,
     format=FORMAT,
     level="INFO",
-    colorize=False, # 报告中不需要 ANSI 颜色代码
+    colorize=True, # 开启彩色高亮日志等级
+    enqueue=True,   # 确保多进程并发时文本不乱串
 )
 
 # 添加 INFO 级别到文件 (每日轮转，保留 7 天)

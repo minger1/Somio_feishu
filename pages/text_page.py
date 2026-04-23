@@ -1,22 +1,34 @@
 from playwright.sync_api import expect
-from locators import Locators
-from logger import logger
+from config.locators import Locators
+from utils import logger
 import time
 import re
-from re import compile
 
 class TextPage:
-    """封装文本模式相关的页面操作"""
+    """封装文本/歌词模式相关的页面操作"""
 
     def __init__(self, page):
         self.page = page
 
+    def switch_to_lyrics_tab(self):
+        """点击顶部 Tab 切换到歌词(Lyrics)特征生成模式"""
+        logger.info("切换到 Lyrics 选项卡")
+        self.page.locator(Locators.LYRICS_TAB).click()
+        self.page.wait_for_timeout(1000)
+
     def text_input(self, text: str, timeout: int = 10000):
-        """输入文本"""
+        """在区域内输入文本提示词"""
+        logger.info(f"输入文本提示词: {text[:15]}...")
         textarea = self.page.locator(Locators.TEXTAREA_INPUT).first
         textarea.fill(text)
         expect(textarea).to_have_value(text, timeout=timeout)
-        logger.success(f"文本输入验证成功: {text}")
+
+    def lyrics_input(self, lyrics: str, timeout: int = 10000):
+        """输入歌词"""
+        logger.info(f"输入歌词文本: {lyrics[:15]}...")
+        textarea = self.page.locator(Locators.LYRICS_CONTENT_TEXTAREA).first
+        textarea.fill(lyrics)
+        expect(textarea).to_have_value(lyrics, timeout=timeout)
 
     def model_version(self, locator: str, timeout: int = 10000):
         """打开模型下拉并选择指定的版本"""
@@ -31,6 +43,16 @@ class TextPage:
     def is_limit_dialog_visible(self, timeout: int = 5000) -> bool:
         """检查限制弹窗是否可见"""
         return self.page.locator(Locators.LIMIT_DIALOG).is_visible(timeout=timeout)
+
+    def assert_limit_dialog_visible(self, timeout: int = 5000):
+        """断言限制弹窗可见"""
+        expect(self.page.locator(Locators.LIMIT_DIALOG)).to_be_visible(timeout=timeout)
+        logger.success("验证通过：限制弹窗已弹出")
+
+    def assert_login_modal_visible(self, timeout: int = 5000):
+        """断言登录窗口可见"""
+        expect(self.page.locator(Locators.LOGIN_MODAL)).to_be_visible(timeout=timeout)
+        logger.success("验证通过：登录窗口已弹出")
 
     def close_limit_dialog(self):
         """关闭限制弹窗"""
@@ -49,46 +71,49 @@ class TextPage:
         logger.info("点击了限制弹窗中的登录按钮")
 
     def click_create(self):
-        """点击主界面立即创作按钮"""
+        """点击底部 Create 按钮生成"""
+        logger.info("点击 Create 按钮")
         self.page.locator(Locators.CREATE_BTN).click()
-        logger.info("点击了立即创作按钮")
 
     def song_title_input(self, title: str):
         """输入歌曲名称"""
+        logger.info(f"输入歌曲名称: '{title}'")
         self.page.locator(Locators.SONG_TITLE_INPUT).fill(title)
-        logger.info(f"输入歌曲名称: {title}")
+        time.sleep(1)
 
     def text_ai_analysis_popup(self):
+        """等待 AI 分析弹窗"""
+        logger.info("等待 AI 分析弹窗出现...")
+        expect(self.page.locator(Locators.AI_ANALYSIS_MODAL)).to_be_visible(timeout=60000)
+        expect(self.page.locator(Locators.AI_CREATE_NOW_BTN).first).to_be_visible(timeout=120000)
+        expect(self.page.locator(Locators.AI_ORIGINAL_VERSION_BTN).first).to_be_visible(timeout=120000)
+
+    def switch_ai_analysis_tab(self, tab_name: str):
         """
-        等待ai分析成功
+        AI分析页面切换分页
+        tab_name: 'Lyrics Formatting' 或 'Lyrics Refinement'
         """
-        logger.info(f"等待 AI 分析弹窗出现...")
-        # 使用用户提供的新定位符
-        expect(self.page.locator(Locators.AI_ANALYSIS_MODAL)).to_be_visible(timeout=30000)
-        expect(self.page.locator(Locators.AI_CREATE_NOW_BTN)).to_be_visible(timeout=120000)
-        expect(self.page.locator(Locators.AI_ORIGINAL_VERSION_BTN)).to_be_visible(timeout=120000)
-        expect(self.page.locator(Locators.AI_VIEW_LYRICS_BTN)).to_be_visible(timeout=120000)
-        logger.success("AI分析成功，返回ai分析结果")
+        tabs = self.page.locator(Locators.LYRICS_AI_ANALYSIS_TABS)
+        if tab_name.lower() == "formatting":
+            tabs.nth(0).click()
+        elif tab_name.lower() == "refinement":
+            tabs.nth(1).click()
+        else:
+            # 或者直接按文本匹配
+            tabs.filter(has_text=tab_name).click()
+        logger.info(f"AI分析页面切换到分页: {tab_name}")
 
 
     def text_select_original(self):
-        """
-        文本模式下ai分析窗口-用原始数据生成
-        """
-        self.page.locator(Locators.AI_ORIGINAL_VERSION_BTN).dispatch_event("click")
-        logger.info("点击了原始数据生成按钮")
+        """选择 Original Version"""
+        logger.info("选择 Original Version")
+        self.page.locator(Locators.AI_ORIGINAL_VERSION_BTN).first.dispatch_event("click")
 
     def text_select_create_now(self):
-        """
-        文本模式下ai分析窗口-直接点击create now生成
-        """
-        self.page.locator(Locators.AI_CREATE_NOW_BTN).dispatch_event("click")
-        logger.info("点击了AI生成按钮")
+        """选择 Create Now"""
+        logger.info("选择 Create Now (AI)")
+        self.page.locator(Locators.AI_CREATE_NOW_BTN).first.dispatch_event("click")
 
-
-    """
-    查看歌词
-    """
 
     def text_select_view_lyrics(self):
         """
@@ -111,6 +136,22 @@ class TextPage:
         self.page.locator(Locators.LYRICS_EDIT_BTN).dispatch_event("click")
         logger.info("点击了歌词编辑按钮")
 
+    def edit_generated_lyrics_title(self, new_title: str):
+        """
+        在歌词生成窗口修改被 AI 覆盖的歌名
+        """
+        # 点击编辑按钮
+        self.page.locator(Locators.LYRICS_EDIT_BTN).dispatch_event("click")
+        logger.info("点击编辑按钮，准备修改被AI覆盖的歌名")
+        
+        # 输入新的歌名
+        self.page.locator(Locators.LYRICS_TITLE_INPUT).fill(new_title)
+        
+        # 保存编辑
+        self.page.locator(Locators.LYRICS_EDIT_SAVE_BTN).dispatch_event("click")
+        logger.info(f"保存了修改后的歌名: {new_title}")
+        self.page.wait_for_timeout(500)
+
     def text_select_view_lyrics_edit_cancel(self):
         """
         文本模式下ai分析窗口-查看歌词-编辑歌词-取消编辑
@@ -132,92 +173,133 @@ class TextPage:
         self.page.locator(Locators.LYRICS_CLEAR_BTN).dispatch_event("click")
         logger.info("点击了歌词清除按钮")
 
-
-
-    
-
     def confirm_generation(self):
-        """在确认弹窗中点击继续"""
+        """弹窗确认扣费生成"""
+        logger.info("检查并确认扣费系统弹窗...")
         if self.page.locator(Locators.CONFIRM_DIALOG).is_visible(timeout=5000):
+            logger.info("点击 Continue 确认生成")
             self.page.locator(Locators.CONFIRM_CONTINUE_BTN).dispatch_event("click")
-            logger.info("确认生成弹窗: 点击继续")
 
     def confirm_cancel(self):
-        """在确认弹窗中点击取消"""
+        """取消生成"""
+        logger.info("检查积分弹窗...")
         if self.page.locator(Locators.CONFIRM_DIALOG).is_visible(timeout=5000):
+            logger.info("点击 Cancel 取消生成")
             self.page.locator(Locators.CONFIRM_CANCEL_BTN).dispatch_event("click")
-            logger.info("确认生成弹窗: 点击取消")
 
     def wait_for_generation_success(self, title: str = None, timeout: int = 600000):
         """
-        判断歌曲生成成功：
-        1. 定位任务 (按 title 或最新的 loading 任务)
-        2. 轮询检查 loading 状态是否结束
+        判断歌曲生成成功（适配新版列表 UI）：
+        1. 通过 span.text 精准过滤任务（避免匹配 span.model 等其他 span）
+        2. 同名任务取 .first（一次生成产出多个版本时不误判）
+        3. 轮询：loading class 消失 且 .cover .duration 出现（新 UI 下载按钮已移入三点菜单）
         """
         logger.info(f"开始等待歌曲生成（监控歌曲: {title if title else '最新任务'}）...")
-        
-        # 定义任务定位器 - 使用 contains 增强鲁棒性
+
+        def _make_locator(t):
+            """按 span.text 精准过滤，返回 li.item 集合（.first 在外层统一取）"""
+            return self.page.locator("li.item").filter(
+                has=self.page.locator(Locators.LIBRARY_ITEM_TITLE_SPAN,
+                                      has_text=re.compile(re.escape(t), re.IGNORECASE))
+            )
+
         if title:
-            task_locator = self.page.locator(f"//li[contains(@class, 'item') and .//span[contains(text(), '{title}')]]")
+            task_locator = _make_locator(title)
         else:
-            task_locator = self.page.locator(Locators.LOADING_TASK).first
+            task_locator = self.page.locator(Locators.LOADING_TASK)
 
         start_time = time.time()
         found_loading = False
-        last_screenshot_time = start_time
         using_fallback = False
-        
+
         while time.time() - start_time < timeout / 1000:
             try:
-                # 如果有标题但找不着超过 30s，尝试回退到追踪最新任务
+                # 超过 30s 还找不到指定 title，尝试回退追踪最新 loading 任务
                 if title and not using_fallback and time.time() - start_time > 30:
                     if task_locator.count() == 0:
-                        temp_latest = self.page.locator(Locators.LOADING_TASK).first
+                        temp_latest = self.page.locator(Locators.LOADING_TASK)
                         if temp_latest.count() > 0:
-                            # 尝试提取新名字 (假设在 span 中)
                             try:
-                                new_title = temp_latest.locator("span").first.text_content(timeout=3000).strip()
+                                new_title = temp_latest.first.locator(
+                                    Locators.LIBRARY_ITEM_TITLE_SPAN
+                                ).first.text_content(timeout=3000).strip()
                                 if new_title:
-                                    logger.warning(f"未能找到标题为 '{title}' 的任务，识别到最新任务名为 '{new_title}'。切换追踪...")
+                                    logger.warning(f"未找到 '{title}'，切换追踪最新任务 '{new_title}'")
                                     title = new_title
-                                    task_locator = self.page.locator(f"//li[contains(@class, 'item') and .//span[contains(text(), '{title}')]]")
+                                    task_locator = _make_locator(title)
                                     using_fallback = True
                             except:
-                                logger.warning(f"未能找到标题为 '{title}' 的任务，且无法识别新任务名。直接回退至追踪第一个 loading 任务...")
+                                logger.warning(f"未找到 '{title}'，回退至第一个 loading 任务")
                                 task_locator = temp_latest
                                 using_fallback = True
                         else:
-                            logger.debug("尚未发现任何生成的 loading 任务...")
+                            logger.debug("尚未发现任何生成中的任务...")
 
-
-                # 检查并关闭可能出现的弹窗 (如：帖子赚积分弹窗)
-                close_btn = self.page.locator("//div[contains(@class, 'close') or contains(@class, 'icon-close')]").first
+                # 关闭随机弹窗
+                close_btn = self.page.locator(
+                    "//div[contains(@class, 'close') or contains(@class, 'icon-close')]"
+                ).first
                 if close_btn.is_visible():
                     close_btn.click()
-                    logger.info("检测到并关闭了随机弹窗")
+                    logger.debug("检测到并关闭了随机弹窗")
 
-                # 检查元素是否存在且获取其 class
-                if task_locator.count() > 0:
-                    current_class = task_locator.first.get_attribute("class") or ""
-                    
+                cnt = task_locator.count()
+                if cnt > 0:
+                    item = task_locator.first
+                    current_class = item.get_attribute("class") or ""
+
                     if "loading" in current_class:
                         if not found_loading:
-                            logger.info(f"检测到歌曲正在生成中 (Class: {current_class})")
+                            logger.info(f"歌曲持续生成中 (匹配到 {cnt} 条)")
                             found_loading = True
                     else:
-                        # 如果没有 loading 类，则判断为成功
-                        # 注意：需要确保它是我们之前看到的那个 item，或者至少不是空状态
-                        logger.success(f"歌曲生成完成! (最终 Class: {current_class})")
-                        return True
+                        # 新 UI：下载按钮已移入三点菜单，改用封面时长标签判断生成成功
+                        duration = item.locator(Locators.LIBRARY_ITEM_DURATION)
+                        if duration.count() > 0 and duration.first.is_visible():
+                            logger.info(f"歌曲生成完成: {title}")
+                            return True
+                        else:
+                            logger.info("等待页面状态刷新...")
                 else:
-                    if time.time() - start_time > 20: 
-                        logger.warning(f"尚未在列表中找到标题包含 '{title}' 的任务...")
+                    if time.time() - start_time > 20:
+                        logger.warning(f"尚未在列表中找到标题为 '{title}' 的任务...")
+
             except Exception as e:
                 logger.debug(f"轮询中遇到异常 (可能正在刷新): {e}")
-            
-            time.sleep(10) # 延长轮询间隔到 10s
-            
+
+            time.sleep(10)
+
         logger.error(f"歌曲生成等待超时 ({timeout/1000}s)")
-        # 超时后再截一张图
-        self.page.screenshot(path=f"report/img/timeout_state_{int(time.time())}.png")
         return False
+
+
+    def run_model_generation_flow(self, model_name: str, model_locator: str):
+        """通用底层模型切换生成辅助方法"""
+        from utils import get_song
+        from data.test_data import TEST_TEXT_PROMPT
+        logger.info(f"开始执行纯文本模式下的模型切换生成操作: {model_name}")
+        
+        # 1. 先切换模型
+        self.model_version(model_locator)
+
+        # 2. 输入歌词/文本提示
+        test_text = TEST_TEXT_PROMPT
+        self.text_input(test_text)
+        
+        # 3. 输入歌名
+        song_title = get_song()
+        self.song_title_input(song_title)
+        
+        # 4. 点击创建
+        self.click_create()
+
+        # 5. ai分析窗口出现，断言特定元素
+        logger.info("等待 AI 分析弹窗就绪...")
+        self.text_ai_analysis_popup()
+
+        # 6. 最后点击创建 (这里用 Original Version 作为最终创建)
+        self.text_select_original()
+        self.confirm_generation()
+        
+        success = self.wait_for_generation_success(title=song_title, timeout=360000)
+        return success, song_title

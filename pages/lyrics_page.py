@@ -191,16 +191,19 @@ class LyricsPage:
     def run_model_generation_flow(self, model_name: str, model_locator: str):
         """通用底层模型切换生成辅助方法"""
         from utils import get_song
-        from data.test_data import STANDARD_LYRICS
+        from data.test_data import STANDARD_LYRICS, STANDARD_LYRICS_v3_5
         from config.locators import Locators
         logger.info(f"开始执行歌词模式下的模型切换生成操作: {model_name}")
+        
+        # 根据模型名称决定使用哪套歌词
+        lyrics_to_use = STANDARD_LYRICS_v3_5 if model_name == "V3_5" else STANDARD_LYRICS
         
         # 1. 先切换模型
         self.model_version(model_locator)
 
         # 2. 输入歌词
         self.switch_to_lyrics_tab()
-        self.input_lyrics(STANDARD_LYRICS)
+        self.input_lyrics(lyrics_to_use)
         
         # 3. 输入歌名
         song_title = get_song()
@@ -220,5 +223,5 @@ class LyricsPage:
         self.select_original_version()
         self.confirm_generation()
         
-        success = self.wait_for_generation_success(title=new_song_title)
-        return success, new_song_title
+        success = self.wait_for_generation_success(title=song_title)
+        return success, song_title

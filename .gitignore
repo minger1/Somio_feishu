@@ -21,3 +21,6 @@ logs/*.log
 
 # Project Specific
 config_local.py
+.env
+bot.log
+test_results.*

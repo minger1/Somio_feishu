@@ -35,4 +35,24 @@ But you’re still running through my mind
 On the edge of the night, I call your name
 Only echoes answer me the same
 We were fire, now a dying light
-Burned so bright, now lost in the night"""
+Burned so bright, now lost in the night
+"""
+
+STANDARD_LYRICS_v3_5 = """[Verse 1]
+Neon lights are fading on the avenue
+City’s heartbeat slowing without you
+Your touch still lingers in my hands
+Slipping away like we never planned
+
+[Pre-Chorus]
+Time moves like a silent wave
+Washing out the love we gave
+I try not to look behind
+But you’re still running through my mind
+
+[Chorus]
+On the edge of the night, I call your name
+Only echoes answer me the same
+We were fire, now a dying light
+Burned so bright, now lost in the night
+"""

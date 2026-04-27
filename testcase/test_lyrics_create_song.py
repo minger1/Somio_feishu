@@ -1,6 +1,7 @@
 from pages.lyrics_page import LyricsPage
 from utils import get_song, logger
 from data.test_data import NON_STANDARD_LYRICS, STANDARD_LYRICS
+from config.locators import Locators
 
 class TestLyricsCreateSong:
     """歌词模式(Lyrics Tab)下生成音乐的全量生命周期与弹窗流测试集"""
@@ -111,7 +112,6 @@ class TestLyricsCreateSong:
         系统应判断为高质量无须 AI 强干涉，直接绕过 'AI Analysis' 弹窗，直达 Confirm 生成确认的快审流程。
         """
         logger.info("开始测试：标准规范歌词 [极速直通生成]")
-        from config.locators import Locators
         
         lp = LyricsPage(logged_in_page)
         page = logged_in_page
@@ -147,37 +147,31 @@ class TestLyricsCreateSong:
     # ------------------------------------------------------------------
 
     def test_lyrics_mode_v5_5(self, logged_in_page):
-        from config.locators import Locators
         lp = LyricsPage(logged_in_page)
         success, song_title = lp.run_model_generation_flow("V5.5", Locators.MODEL_VERSION_V5_5)
         assert success, f"歌词模式 V5.5 模型生成歌曲 '{song_title}' 超时或失败"
         logger.success("歌词模式 V5.5 模型生成用例测试完毕")
 
     def test_lyrics_mode_v5(self, logged_in_page):
-        from config.locators import Locators
         lp = LyricsPage(logged_in_page)
         success, song_title = lp.run_model_generation_flow("V5", Locators.MODEL_VERSION_V5)
         assert success, f"歌词模式 V5 模型生成歌曲 '{song_title}' 超时或失败"
         logger.success("歌词模式 V5 模型生成用例测试完毕")
 
     def test_lyrics_mode_v4_5_plus(self, logged_in_page):
-        from config.locators import Locators
         lp = LyricsPage(logged_in_page)
         success, song_title = lp.run_model_generation_flow("V4.5+", Locators.MODEL_VERSION_V4_5_PLUS)
         assert success, f"歌词模式 V4.5+ 模型生成歌曲 '{song_title}' 超时或失败"
         logger.success("歌词模式 V4.5+ 模型生成用例测试完毕")
 
     def test_lyrics_mode_v4_5(self, logged_in_page):
-        from config.locators import Locators
         lp = LyricsPage(logged_in_page)
         success, song_title = lp.run_model_generation_flow("V4.5", Locators.MODEL_VERSION_V4_5)
         assert success, f"歌词模式 V4.5 模型生成歌曲 '{song_title}' 超时或失败"
         logger.success("歌词模式 V4.5 模型生成用例测试完毕")
 
     def test_lyrics_mode_v3_5(self, logged_in_page):
-        from config.locators import Locators
         lp = LyricsPage(logged_in_page)
-        success, song_title = lp.run_model_generation_flow("V3.5", Locators.MODEL_VERSION_V3_5)
-        assert success, f"歌词模式 V3.5 模型生成歌曲 '{song_title}' 超时或失败"
-        logger.success("歌词模式 V3.5 模型生成用例测试完毕")
-
+        success, song_title = lp.run_model_generation_flow("V3_5", Locators.MODEL_VERSION_V3_5)
+        assert success, f"歌词模式 V3_5 模型生成歌曲 '{song_title}' 超时或失败"
+        logger.success("歌词模式 V3_5 模型生成用例测试完毕")

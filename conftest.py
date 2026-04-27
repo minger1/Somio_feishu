@@ -8,6 +8,7 @@ from config.settings import ENVIRONMENTS, DEFAULT_ENV, DEFAULT_LANGUAGE, LOGIN_E
 from utils import logger
 from config.locators import Locators
 from pages.login_page import LoginPage
+import json
 
 # 支持的浏览器引擎
 SUPPORTED_BROWSERS = ["chromium", "firefox", "webkit", "msedge"]
@@ -30,7 +31,7 @@ def pytest_addoption(parser):
         help="要测试的语言，多个用逗号分隔，如 en 或 zh-cn（默认：en）"
     )
     parser.addoption(
-        "--browser",
+        "--target-browser",
         action="store",
         default=DEFAULT_BROWSER,
         help="要测试的浏览器，多个用逗号分隔，如 chromium 或 chromium,firefox（默认：chromium）"
@@ -77,7 +78,7 @@ def pytest_generate_tests(metafunc):
         metafunc.parametrize("lang_urls", params, scope="session")
 
     if "browser_engine" in metafunc.fixturenames:
-        raw = metafunc.config.getoption("--browser", default=DEFAULT_BROWSER)
+        raw = metafunc.config.getoption("--target-browser", default=DEFAULT_BROWSER)
         if raw.strip() == "all":
             browsers = list(SUPPORTED_BROWSERS)
         else:
@@ -183,33 +184,41 @@ def logged_in_page(authenticated_context, lang_urls):
 def pytest_runtest_makereport(item, call):
     """
     当测试失败时自动截图，并在支持 pytest-html 时附加到报告。
-    需要测试用例中使用 page fixture。
+    同时，把执行状态和耗时等写入全局数组供飞书卡片用
     """
     outcome = yield
     rep = outcome.get_result()
     
-    if rep.when == "call" and rep.failed:
-        page = item.funcargs.get("page")
-        if page:
-            report_dir = "report/screenshots"
-            if not os.path.exists(report_dir):
-                os.makedirs(report_dir)
-            
-            timestamp = time.strftime("%Y%m%d_%H%M%S")
-            file_name = f"{item.name}_{timestamp}.png"
-            file_path = os.path.join(report_dir, file_name)
-            
-            try:
-                page.screenshot(path=file_path, full_page=True)
-                logger.error(f"测试失败，截图已保存至: {file_path}")
-            except Exception as e:
-                logger.error(f"截图失败: {e}")
-                return
-            
-            try:
-                from pytest_html import extras
-                if not hasattr(rep, "extra") or rep.extra is None:
-                    rep.extra = []
-                rep.extra.append(extras.image(file_path))
-            except Exception:
-                pass
+    if rep.when == "call" or (rep.when == "setup" and rep.failed):
+        result_data = {
+            "name": item.name,
+            "status": "PASS" if rep.passed else "FAIL" if rep.failed else "SKIPPED",
+            "duration": round(rep.duration, 2),
+            "screenshot": None,
+            "error_msg": str(rep.longrepr) if rep.failed else ""
+        }
+        
+        if rep.failed:
+            page = item.funcargs.get("page") or item.funcargs.get("logged_in_page") or item.funcargs.get("authenticated_context")
+            if page and hasattr(page, 'screenshot'):
+                report_dir = "report/screenshots"
+                if not os.path.exists(report_dir):
+                    os.makedirs(report_dir)
+                
+                timestamp = time.strftime("%Y%m%d_%H%M%S")
+                file_name = f"{item.name}_{timestamp}.png"
+                file_path = os.path.join(report_dir, file_name)
+                
+                try:
+                    page.screenshot(path=file_path, full_page=True)
+                    logger.error(f"测试失败，截图已保存至: {file_path}")
+                    result_data["screenshot"] = os.path.abspath(file_path)
+                except Exception as e:
+                    logger.error(f"截图失败: {e}")
+                
+        out_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), "test_results.jsonl")
+        try:
+            with open(out_file, "a", encoding="utf-8") as f:
+                f.write(json.dumps(result_data, ensure_ascii=False) + "\n")
+        except Exception as e:
+            logger.error(f"写入报告文件 test_results.jsonl 失败: {e}")

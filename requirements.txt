@@ -3,3 +3,6 @@ requests
 python-dotenv
 pytest
 pytest-playwright
+pytest-xdist
+pytest-html
+lark-oapi

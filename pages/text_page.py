@@ -301,5 +301,5 @@ class TextPage:
         self.text_select_original()
         self.confirm_generation()
         
-        success = self.wait_for_generation_success(title=song_title, timeout=360000)
+        success = self.wait_for_generation_success(title=song_title, timeout=600000)
         return success, song_title

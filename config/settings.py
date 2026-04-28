@@ -1,6 +1,7 @@
 # ==================== 全局配置 ====================
 #会员账号
-LOGIN_EMAIL = "ljkjtest20260317@qq.com"
+# LOGIN_EMAIL = "ljkjtest20260317@qq.com"
+LOGIN_EMAIL = "testljkj20260428ymm@qq.com"
 LOGIN_PASSWORD = "123456"
 
 VERIFICATION_CODE = "999123" #通用验证码

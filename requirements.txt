@@ -6,3 +6,5 @@ pytest-playwright
 pytest-xdist
 pytest-html
 lark-oapi
+loguru
+playwright-stealth

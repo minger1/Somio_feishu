@@ -131,13 +131,20 @@ class Locators:
     SONG_TITLE_INPUT = "//div[@class='song-input']//input[@type='text']"  # 歌曲名称输入框
 
     # 模型版本
-    MODEL_VERSION_DROPDOWN = ".model-version"  # 模型版本下拉
-    MODEL_VERSION_V5_5 = ".model-version li:nth-child(1)"  # V5.5
-    MODEL_VERSION_V5 = ".model-version li:nth-child(2)"  # V5
-    MODEL_VERSION_V4_5_PLUS = ".model-version li:nth-child(3)"  # V4.5+
-    MODEL_VERSION_V4_5 = ".model-version li:nth-child(4)"  # V4.5
-    MODEL_VERSION_V3_5 = ".model-version li:nth-child(5)"  # V3.5
-    MODEL_VERSION_ACTIVE = "div[@class='model-version']//li[@class='active']"  # 当前选中的模型版本:未登录默认情况下是选择v3.5
+    # DOM 结构：.workbench-wrapper-content > .header > .model-version > ul > li（li 无 class）
+    # .model-version 是触发器 div（点击展开 ul）
+    # li 顺序固定：1=V5.5, 2=V5, 3=V4.5+, 4=V4.5, 5=V3.5, 6=lyria3（新增）
+    MODEL_VERSION_DROPDOWN = ".workbench-wrapper-content .model-version"  # 模型版本下拉触发器
+    MODEL_VERSION_V5_5 = ".workbench-wrapper-content .model-version ul li:nth-child(1)"  # V5.5
+    MODEL_VERSION_V5   = ".workbench-wrapper-content .model-version ul li:nth-child(2)"  # V5
+    MODEL_VERSION_V4_5_PLUS = ".workbench-wrapper-content .model-version ul li:nth-child(3)"  # V4.5+
+    MODEL_VERSION_V4_5 = ".workbench-wrapper-content .model-version ul li:nth-child(4)"  # V4.5
+    MODEL_VERSION_V3_5 = ".workbench-wrapper-content .model-version ul li:nth-child(5)"  # V3.5
+    MODEL_VERSION_LYRIA3 = ".workbench-wrapper-content .model-version ul li:nth-child(6)"  # lyria3（新增）
+    MODEL_VERSION_ACTIVE = ".workbench-wrapper-content .model-version li.active"  # 当前选中的模型版本
+
+
+
 
     # 限制弹窗 (作用域限定在 .workbench-wrapper 以防冲突)
     LIMIT_DIALOG = ".workbench-wrapper .dialog-content"  # 限制弹窗

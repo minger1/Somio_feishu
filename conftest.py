@@ -148,12 +148,18 @@ def authenticated_context(browser, lang_urls, browser_engine):
 
     
     # 登录流程
-    logger.info(f"正在导航至首页: {lang_urls['generate_url']}")
-    p.goto(lang_urls["generate_url"])
+    generate_url = lang_urls["generate_url"]
+    logger.info(f"正在导航至首页: {generate_url}")
+    p.goto(generate_url)
+    p.wait_for_load_state("networkidle", timeout=30000)
     
+    # 点击 'start creating' 进入功能页
     logger.info("点击 'start creating' 进入功能页")
-    p.locator(Locators.START_CREATING_BTN).click()
-    p.wait_for_load_state("domcontentloaded")
+    btn = p.locator(Locators.START_CREATING_BTN)
+    btn.scroll_into_view_if_needed(timeout=10000)
+    btn.click(timeout=10000)
+    p.wait_for_load_state("networkidle", timeout=30000)
+    p.wait_for_timeout(1000)  # 额外等待 UI 组件渲染
     
     login_page = LoginPage(p)
     login_page.login(LOGIN_EMAIL, LOGIN_PASSWORD)
@@ -167,12 +173,18 @@ def logged_in_page(authenticated_context, lang_urls):
     p = authenticated_context.new_page()
     p.set_default_timeout(10000)
     
-    logger.info(f"正在导航至首页: {lang_urls['generate_url']}")
-    p.goto(lang_urls["generate_url"])
+    generate_url = lang_urls["generate_url"]
+    logger.info(f"正在导航至首页: {generate_url}")
+    p.goto(generate_url)
+    p.wait_for_load_state("networkidle", timeout=30000)
     
+    # 点击 'start creating' 进入功能页
     logger.info("点击 'start creating' 进入功能页")
-    p.locator(Locators.START_CREATING_BTN).click()
-    p.wait_for_load_state("domcontentloaded")
+    btn = p.locator(Locators.START_CREATING_BTN)
+    btn.scroll_into_view_if_needed(timeout=10000)
+    btn.click(timeout=10000)
+    p.wait_for_load_state("networkidle", timeout=30000)
+    p.wait_for_timeout(1000)  # 额外等待 UI 组件渲染
     
     yield p
     p.close()

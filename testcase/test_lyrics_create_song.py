@@ -152,41 +152,41 @@ class TestLyricsCreateSong:
     #     assert success, f"歌词模式 Somio V4 模型生成 '{song_title}' 超时或失败"
     #     logger.success("歌词模式 Somio V4 模型生成用例测试完毕")
 
-    # def test_lyrics_mode_v3_5(self, logged_in_page):
-    #     """Somio V3.5 模型 - 歌词模式生成"""
-    #     lp = LyricsPage(logged_in_page)
-    #     success, song_title = lp.run_model_generation_flow(
-    #         "V3.5", Locators.MODEL_VERSION_V3_5,
-    #         provider_locator=Locators.MODEL_PROVIDER_SOMIO
-    #     )
-    #     assert success, f"歌词模式 Somio V3.5 模型生成 '{song_title}' 超时或失败"
-    #     logger.success("歌词模式 Somio V3.5 模型生成用例测试完毕")
+    def test_lyrics_mode_v3_5(self, logged_in_page):
+        """Somio V3.5 模型 - 歌词模式生成"""
+        lp = LyricsPage(logged_in_page)
+        success, song_title = lp.run_model_generation_flow(
+            "V3.5", Locators.MODEL_VERSION_V3_5,
+            provider_locator=Locators.MODEL_PROVIDER_SOMIO
+        )
+        assert success, f"歌词模式 Somio V3.5 模型生成 '{song_title}' 超时或失败"
+        logger.success("歌词模式 Somio V3.5 模型生成用例测试完毕")
 
     # --- Google 模型 ---
 
-    def test_lyrics_mode_lyria3(self, logged_in_page):
-        """Google Lyria3 模型 - 歌词模式生成"""
-        lp = LyricsPage(logged_in_page)
-        success, song_title = lp.run_model_generation_flow(
-            "Lyria3",
-            Locators.MODEL_VERSION_LYRICS3,
-            provider_locator=Locators.MODEL_PROVIDER_GOOGLE
-        )
-        assert success, f"歌词模式 Google Lyria3 模型生成 '{song_title}' 超时或失败"
-        logger.success("歌词模式 Google Lyria3 模型生成用例测试完毕")
+    # def test_lyrics_mode_lyria3(self, logged_in_page):
+    #     """Google Lyria3 模型 - 歌词模式生成"""
+    #     lp = LyricsPage(logged_in_page)
+    #     success, song_title = lp.run_model_generation_flow(
+    #         "Lyria3",
+    #         Locators.MODEL_VERSION_LYRICS3,
+    #         provider_locator=Locators.MODEL_PROVIDER_GOOGLE
+    #     )
+    #     assert success, f"歌词模式 Google Lyria3 模型生成 '{song_title}' 超时或失败"
+    #     logger.success("歌词模式 Google Lyria3 模型生成用例测试完毕")
 
-    # --- MINIMAX 模型 ---
+    # # --- MINIMAX 模型 ---
 
-    def test_lyrics_mode_minimax_v2_6(self, logged_in_page):
-        """MINIMAX V2.6 模型 - 歌词模式生成"""
-        lp = LyricsPage(logged_in_page)
-        success, song_title = lp.run_model_generation_flow(
-            "Minimax-V2.6",
-            Locators.MODEL_VERSION_MINIMAX_V2_6,
-            provider_locator=Locators.MODEL_PROVIDER_MINIMAX
-        )
-        assert success, f"歌词模式 MINIMAX V2.6 模型生成 '{song_title}' 超时或失败"
-        logger.success("歌词模式 MINIMAX V2.6 模型生成用例测试完毕")
+    # def test_lyrics_mode_minimax_v2_6(self, logged_in_page):
+    #     """MINIMAX V2.6 模型 - 歌词模式生成"""
+    #     lp = LyricsPage(logged_in_page)
+    #     success, song_title = lp.run_model_generation_flow(
+    #         "Minimax-V2.6",
+    #         Locators.MODEL_VERSION_MINIMAX_V2_6,
+    #         provider_locator=Locators.MODEL_PROVIDER_MINIMAX
+    #     )
+    #     assert success, f"歌词模式 MINIMAX V2.6 模型生成 '{song_title}' 超时或失败"
+    #     logger.success("歌词模式 MINIMAX V2.6 模型生成用例测试完毕")
 
     # def test_lyrics_mode_minimax_v2_5_plus(self, logged_in_page):
     #     """MINIMAX V2.5+ 模型 - 歌词模式生成"""

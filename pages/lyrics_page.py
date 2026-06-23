@@ -1,9 +1,8 @@
 from playwright.sync_api import expect
 from config.locators import Locators
-from utils import logger
+from utils import logger, get_song, wait_for_ai_analysis_common
 import time
 import re
-from utils import get_song
 from data.test_data import STANDARD_LYRICS
 
 
@@ -35,12 +34,20 @@ class LyricsPage:
         self.page.locator(Locators.SONG_TITLE_INPUT).fill(title)
         logger.info(f"输入歌曲名称: {title}")
 
-    def model_version(self, locator: str, timeout: int = 10000):
-        """打开模型下拉并选择指定的版本"""
+    def model_version(self, model_locator: str, provider_locator: str = None, timeout: int = 10000):
+        """打开模型下拉并选择指定的版本
+        
+        新的两列结构:
+        - 先点击 provider_locator 选择 provider（Somio.ai/Google/MINIMAX）
+        - 再点击 model_locator 选择具体模型
+        """
         self.page.locator(Locators.MODEL_VERSION_DROPDOWN).click()
         self.page.wait_for_timeout(500)
-        self.page.locator(locator).click(force=True)
-        logger.success(f"模型版本选择指令发送成功: {locator}")
+        if provider_locator:
+            self.page.locator(provider_locator).click(force=True)
+            self.page.wait_for_timeout(400)
+        self.page.locator(model_locator).click(force=True)
+        logger.success(f"模型版本选择指令发送成功: {model_locator}")
 
     def click_create(self):
         """点击立即创作按钮"""
@@ -65,10 +72,12 @@ class LyricsPage:
         等待 AI 分析页面出现，并断言 Original Version 和 Create Now 按钮可见。
         注意：点击创建后可能先出现确认弹窗，需先调用 confirm_generation。
         """
-        logger.info("等待 AI 分析页面...")
-        expect(self.page.locator(Locators.AI_CREATE_NOW_BTN).first).to_be_visible(timeout=120000)
-        expect(self.page.locator(Locators.AI_ORIGINAL_VERSION_BTN).first).to_be_visible(timeout=120000)
-        logger.success("AI 分析页面显示正常，包含 Original Version 和 Create Now 按钮")
+        wait_for_ai_analysis_common(
+            page=self.page,
+            modal_locators=[Locators.REFERENCE_AI_LOADING, Locators.AI_ANALYSIS_MODAL, Locators.LYRICS_AI_DIALOG_CONTENT],
+            success_locators=[Locators.AI_CREATE_NOW_BTN, Locators.AI_ORIGINAL_VERSION_BTN],
+            success_message="AI 分析页面显示正常，包含 Original Version 和 Create Now 按钮"
+        )
 
     def switch_ai_tab(self, tab_index: int):
         """
@@ -166,10 +175,10 @@ class LyricsPage:
     # ------------------------------------------------------------------
 
     def wait_for_generation_success(self, title: str, timeout: int = 600000):
-        """等待歌曲生成成功（复用 TextPage 的轮询逻辑）"""
-        from pages.text_page import TextPage
-        tp = TextPage(self.page)
-        return tp.wait_for_generation_success(title=title, timeout=timeout)
+        """等待歌曲生成成功（委托给 LibraryPage）"""
+        from pages.library_page import LibraryPage
+        lib_page = LibraryPage(self.page)
+        return lib_page.wait_for_generation_success(title=title, timeout=timeout)
 
     def edit_ai_analysis_title(self, new_title: str):
         """在 AI 分析弹窗中直接修改被 AI 覆盖的歌名"""
@@ -188,40 +197,42 @@ class LyricsPage:
         logger.info(f"成功在 AI 弹窗中将歌名修改保存为: {new_title}")
         self.page.wait_for_timeout(500)
 
-    def run_model_generation_flow(self, model_name: str, model_locator: str):
-        """通用底层模型切换生成辅助方法"""
+    def run_model_generation_flow(self, model_name: str, model_locator: str, provider_locator: str = None):
+        """通用底层模型切换生成辅助方法（用标准歌词直接生成）"""
         from utils import get_song
-        from data.test_data import STANDARD_LYRICS, STANDARD_LYRICS_v3_5
+        from data.test_data import STANDARD_LYRICS
         from config.locators import Locators
         logger.info(f"开始执行歌词模式下的模型切换生成操作: {model_name}")
         
-        # 根据模型名称决定使用哪套歌词
-        lyrics_to_use = STANDARD_LYRICS_v3_5 if model_name == "V3_5" else STANDARD_LYRICS
-        
         # 1. 先切换模型
-        self.model_version(model_locator)
+        self.model_version(model_locator, provider_locator)
 
-        # 2. 输入歌词
+        # 2. 切换到 Lyrics Tab 并输入标准歌词
         self.switch_to_lyrics_tab()
-        self.input_lyrics(lyrics_to_use)
+        self.input_lyrics(STANDARD_LYRICS)
         
         # 3. 输入歌名
-        song_title = get_song()
+        song_title = get_song(prefix="LYRICS", model=model_name)
         self.input_song_title(song_title)
         
         # 4. 点击创建
         self.click_create()
 
-        # 5. ai分析窗口出现，断言特定元素
-        logger.info("等待 AI 分析弹窗就绪...")
-        self.wait_for_ai_analysis()
-
-        # 6. 再次改歌名（在 AI 弹窗内）
-        self.edit_ai_analysis_title(song_title)
-
-        # 7. 最后点击创建 (这里用 Original Version 作为最终创建)
-        self.select_original_version()
+        # 5. 标准歌词直接生成，确认扭费弹窗
+        logger.info("标准歌词直接生成，处理扭费确认弹窗...")
         self.confirm_generation()
         
         success = self.wait_for_generation_success(title=song_title)
         return success, song_title
+
+    def run_standard_direct_flow(self, lyrics: str, song_title: str, timeout: int = 600000) -> bool:
+        """
+        标准歌词直接生成流程（跳过 AI 分析，直接到扣费确认）
+        """
+        logger.info("执行歌词模式标准直接生成流程")
+        self.switch_to_lyrics_tab()
+        self.input_lyrics(lyrics)
+        self.input_song_title(song_title)
+        self.click_create()
+        self.confirm_generation()
+        return self.wait_for_generation_success(title=song_title, timeout=timeout)

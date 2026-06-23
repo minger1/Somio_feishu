@@ -1,6 +1,6 @@
 from playwright.sync_api import expect
 from config.locators import Locators
-from utils import logger
+from utils import logger, wait_for_ai_analysis_common
 import time
 import re
 
@@ -30,15 +30,25 @@ class TextPage:
         textarea.fill(lyrics)
         expect(textarea).to_have_value(lyrics, timeout=timeout)
 
-    def model_version(self, locator: str, timeout: int = 10000):
-        """打开模型下拉并选择指定的版本"""
+    def model_version(self, model_locator: str, provider_locator: str = None, timeout: int = 10000):
+        """打开模型下拉并选择指定的版本
+        
+        新的两列结构:
+        - 先点击 provider_locator 选择 provider（Somio.ai/Google/MINIMAX）
+        - 再点击 model_locator 选择具体模型
+        - 如果 provider_locator 为 None，表示默认不需要切换 provider
+        """
         # 第一步：点击下拉框标题以展开
         self.page.locator(Locators.MODEL_VERSION_DROPDOWN).click()
         # 增加一小段等待，确保下拉动画完成
         self.page.wait_for_timeout(500)
-        # 第二步：点击指定的选项
-        self.page.locator(locator).click(force=True)
-        logger.success(f"模型版本选择指令发送成功: {locator}")
+        # 第二步：如果指定了 provider，先切换 provider
+        if provider_locator:
+            self.page.locator(provider_locator).click(force=True)
+            self.page.wait_for_timeout(400)
+        # 第三步：点击具体的模型选项
+        self.page.locator(model_locator).click(force=True)
+        logger.success(f"模型版本选择指令发送成功: {model_locator}")
 
     def is_limit_dialog_visible(self, timeout: int = 5000) -> bool:
         """检查限制弹窗是否可见"""
@@ -83,10 +93,12 @@ class TextPage:
 
     def text_ai_analysis_popup(self):
         """等待 AI 分析弹窗"""
-        logger.info("等待 AI 分析弹窗出现...")
-        expect(self.page.locator(Locators.AI_ANALYSIS_MODAL)).to_be_visible(timeout=60000)
-        expect(self.page.locator(Locators.AI_CREATE_NOW_BTN).first).to_be_visible(timeout=120000)
-        expect(self.page.locator(Locators.AI_ORIGINAL_VERSION_BTN).first).to_be_visible(timeout=120000)
+        wait_for_ai_analysis_common(
+            page=self.page,
+            modal_locators=[Locators.REFERENCE_AI_LOADING, Locators.AI_ANALYSIS_MODAL],
+            success_locators=[Locators.AI_CREATE_NOW_BTN, Locators.AI_ORIGINAL_VERSION_BTN],
+            success_message="AI 分析完成，Create Now 和 Original Version 按钮可见"
+        )
 
     def switch_ai_analysis_tab(self, tab_name: str):
         """
@@ -188,118 +200,86 @@ class TextPage:
             self.page.locator(Locators.CONFIRM_CANCEL_BTN).dispatch_event("click")
 
     def wait_for_generation_success(self, title: str = None, timeout: int = 600000):
-        """
-        判断歌曲生成成功（适配新版列表 UI）：
-        1. 通过 span.text 精准过滤任务（避免匹配 span.model 等其他 span）
-        2. 同名任务取 .first（一次生成产出多个版本时不误判）
-        3. 轮询：loading class 消失 且 .cover .duration 出现（新 UI 下载按钮已移入三点菜单）
-        """
-        logger.info(f"开始等待歌曲生成（监控歌曲: {title if title else '最新任务'}）...")
-
-        def _make_locator(t):
-            """按 span.text 精准过滤，返回 li.item 集合（.first 在外层统一取）"""
-            return self.page.locator("li.item").filter(
-                has=self.page.locator(Locators.LIBRARY_ITEM_TITLE_SPAN,
-                                      has_text=re.compile(re.escape(t), re.IGNORECASE))
-            )
-
-        if title:
-            task_locator = _make_locator(title)
-        else:
-            task_locator = self.page.locator(Locators.LOADING_TASK)
-
-        start_time = time.time()
-        found_loading = False
-        using_fallback = False
-
-        while time.time() - start_time < timeout / 1000:
-            try:
-                # 超过 30s 还找不到指定 title，尝试回退追踪最新 loading 任务
-                if title and not using_fallback and time.time() - start_time > 30:
-                    if task_locator.count() == 0:
-                        temp_latest = self.page.locator(Locators.LOADING_TASK)
-                        if temp_latest.count() > 0:
-                            try:
-                                new_title = temp_latest.first.locator(
-                                    Locators.LIBRARY_ITEM_TITLE_SPAN
-                                ).first.text_content(timeout=3000).strip()
-                                if new_title:
-                                    logger.warning(f"未找到 '{title}'，切换追踪最新任务 '{new_title}'")
-                                    title = new_title
-                                    task_locator = _make_locator(title)
-                                    using_fallback = True
-                            except:
-                                logger.warning(f"未找到 '{title}'，回退至第一个 loading 任务")
-                                task_locator = temp_latest
-                                using_fallback = True
-                        else:
-                            logger.debug("尚未发现任何生成中的任务...")
-
-                # 关闭随机弹窗
-                close_btn = self.page.locator(
-                    "//div[contains(@class, 'close') or contains(@class, 'icon-close')]"
-                ).first
-                if close_btn.is_visible():
-                    close_btn.click()
-                    logger.debug("检测到并关闭了随机弹窗")
-
-                cnt = task_locator.count()
-                if cnt > 0:
-                    item = task_locator.first
-                    current_class = item.get_attribute("class") or ""
-
-                    if "loading" in current_class:
-                        if not found_loading:
-                            logger.info(f"歌曲持续生成中 (匹配到 {cnt} 条)")
-                            found_loading = True
-                    else:
-                        # 新 UI：下载按钮已移入三点菜单，改用封面时长标签判断生成成功
-                        duration = item.locator(Locators.LIBRARY_ITEM_DURATION)
-                        if duration.count() > 0 and duration.first.is_visible():
-                            logger.info(f"歌曲生成完成: {title}")
-                            return True
-                        else:
-                            logger.info("等待页面状态刷新...")
-                else:
-                    if time.time() - start_time > 20:
-                        logger.warning(f"尚未在列表中找到标题为 '{title}' 的任务...")
-
-            except Exception as e:
-                logger.debug(f"轮询中遇到异常 (可能正在刷新): {e}")
-
-            time.sleep(10)
-
-        logger.error(f"歌曲生成等待超时 ({timeout/1000}s)")
-        return False
+        """等待生成成功 (委托给 LibraryPage)"""
+        from pages.library_page import LibraryPage
+        lib_page = LibraryPage(self.page)
+        return lib_page.wait_for_generation_success(title=title, timeout=timeout)
 
 
-    def run_model_generation_flow(self, model_name: str, model_locator: str):
-        """通用底层模型切换生成辅助方法"""
+    def run_model_generation_flow(self, model_name: str, model_locator: str, provider_locator: str = None):
+        """通用底层模型切换生成辅助方法（用标准文本直接生成）"""
         from utils import get_song
         from data.test_data import TEST_TEXT_PROMPT
         logger.info(f"开始执行纯文本模式下的模型切换生成操作: {model_name}")
         
         # 1. 先切换模型
-        self.model_version(model_locator)
+        self.model_version(model_locator, provider_locator)
 
         # 2. 输入歌词/文本提示
-        test_text = TEST_TEXT_PROMPT
-        self.text_input(test_text)
+        self.text_input(TEST_TEXT_PROMPT)
         
         # 3. 输入歌名
-        song_title = get_song()
+        song_title = get_song(prefix="TEXT", model=model_name)
         self.song_title_input(song_title)
         
         # 4. 点击创建
         self.click_create()
 
-        # 5. ai分析窗口出现，断言特定元素
-        logger.info("等待 AI 分析弹窗就绪...")
-        self.text_ai_analysis_popup()
-
-        # 6. 最后点击创建 (这里用 Original Version 作为最终创建)
-        self.text_select_original()
+        # 5. 标准文本直接生成（不展示 AI 分析弹窗），确认扭费弹窗
         self.confirm_generation()
         
         success = self.wait_for_generation_success(title=song_title, timeout=600000)
         return success, song_title
+
+    def run_generation_flow(self, text: str, song_title: str, action: str = "original", timeout: int = 600000) -> bool:
+        """
+        纯文本模式下的通用创作生成流程封装（简单输入 → AI分析弹窗流程）
+        action 可选: "original" (原始版本), "ai" (AI增强), "view_lyrics" (查看歌词并深度二创)
+        """
+        logger.info(f"执行纯文本通用创作流程(简单输入-AI分析), 生成动作: {action}")
+        # 1. 输入文本和歌名
+        self.text_input(text)
+        self.song_title_input(song_title)
+        
+        # 2. 点击创建
+        self.click_create()
+        
+        # 3. 等待 AI 分析弹窗就绪
+        self.text_ai_analysis_popup()
+        
+        # 4. 依据 action 分流处理
+        if action == "original":
+            self.text_select_original()
+            self.confirm_generation()
+        elif action == "ai":
+            self.text_select_create_now()
+            self.confirm_generation()
+        elif action == "view_lyrics":
+            self.text_select_view_lyrics()
+            # 恢复歌名标记，保证后续能通过歌名追踪
+            self.edit_generated_lyrics_title(song_title)
+            # 点击歌词视图面板的 Generate 按钮生成歌词
+            self.text_select_view_lyrics_generate()
+            # 生成歌词后处理扭费确认弹窗
+            self.confirm_generation()
+            
+        # 5. 验证并等待生成结果
+        return self.wait_for_generation_success(title=song_title, timeout=timeout)
+
+    def run_standard_generation_flow(self, text: str, song_title: str, timeout: int = 600000) -> bool:
+        """
+        纯文本模式 - 标准输入直接生成流程（跳过 AI 分析，直接到扣费确认弹窗）
+        """
+        logger.info("执行纯文本通用创作流程(标准输入-直接生成)")
+        # 1. 输入文本和歌名
+        self.text_input(text)
+        self.song_title_input(song_title)
+        
+        # 2. 点击创建
+        self.click_create()
+        
+        # 3. 直接处理扭费确认弹窗（标准输入不会弹出 AI 分析）
+        self.confirm_generation()
+            
+        # 4. 验证并等待生成结果
+        return self.wait_for_generation_success(title=song_title, timeout=timeout)

@@ -1,0 +1,203 @@
+# =====================================================================
+# Somio 接口契约回归 - 全自动静态匹配已知接口白名单 (API Whitelist)
+# =====================================================================
+# 说明：系统在回归时仅拦截以下整理自《AIMusic 接口文档》的 75 个已知业务核心 API，
+# 任何未在此白名单内的静态资源、CDN 杂音或第三方监控数据均会被静默屏蔽。
+
+# ---------------------------------------------------------------------
+# 1. 移动端专用 API 路由 (Mobile Endpoints)
+# ---------------------------------------------------------------------
+/and/home/index
+/and/home/bgmIndex
+/and/home/association
+/and/home/sceneList
+/and/home/blessing
+/music/getTaskStatus
+/music/getMoreTaskStatus
+/music/MusicAI
+/music/v2/MusicAI
+/and/register
+/and/getUserInfo
+/and/updateUserInfo
+/and/upgradeInfo
+/and/login
+/and/googleLogin
+/and/logout
+/and/checkEmail
+/and/password/email
+/and/password/forget
+/and/refreshToken
+/and/changePassword
+/and/invite/confirm
+/and/getUserActualCredits
+/and/data/delete
+/music/reGenerate
+/and/data/generateList
+/and/data/listForGift
+/and/data/saveForGift
+/and/data/giftDetail
+/and/data/generateDetail
+/and/data/giftCover
+/music/updateSongName
+/and/collect/add
+/and/collect/delete
+/and/collect/lists
+/product/lists
+/and/feedback/types
+/and/feedback
+/music/markAsPlayed
+/and/modelList
+/product/v2/lists
+/and/order/subscriptionVerifyFirst
+/gemini/vertexGenerate
+/gpt/chat
+/music/activityPopup/check
+/music/activityPopup/log
+/and/data/createShareLink
+/and/data/generateDetailByShareCode
+
+# ---------------------------------------------------------------------
+# 2. Web 端专用 API 路由 (Web Endpoints)
+# ---------------------------------------------------------------------
+/web/sendVerifyCode
+/web/register
+/web/login
+/web/getUserInfo
+/web/password/email
+/web/password/reset
+/web/getOrderInfo
+/web/music/MusicAI
+/web/music/reGenerate
+/web/music/generateList
+/web/music/updateSongName
+/web/music/delete
+/web/music/association
+/web/collect/add
+/web/collect/delete
+/web/collect/lists
+/web/like/add
+/web/like/delete
+/web/like/dislike
+/web/like/undislike
+/web/feedback/types
+/web/feedback
+/web/logout
+/web/setLastSelectedModel
+
+# ---------------------------------------------------------------------
+# 3. 视频生成与音频转码通用专有路由 (Media & Converter Endpoints)
+# ---------------------------------------------------------------------
+/api/aimu/batchConvertFileFormat
+/music/v2/sunoGeneratorRequest
+/music/v2/getDetails
+
+# =====================================================================
+# 🆕 自动从新增的 AIMusic.docx 接口文档中同步追加的接口 (40 个)
+# =====================================================================
+/and/clearCache
+/and/data/generateDetailByTaskId
+/and/google/getRefreshTokenUrl
+/and/google/rtdn
+/and/home/giftBlessing
+/and/order/googleTest
+/gemini/generate
+/gemini/vertexGenerateTest
+/gemini/vertexGenerateTestNewTemplate
+/gemini/vertexGenerateaTestA
+/music/addID3Info
+/music/cqtExtendGenerate
+/music/cqtExtendNotify
+/music/cqtUploadExtendGenerate
+/music/generateSounds
+/music/getCompleteSong
+/music/getIP
+/music/getLyrics
+/music/getS3TemporaryUrl
+/music/getStatus
+/music/kieCoverNotify
+/music/kieExtendGenerate
+/music/kieExtendNotify
+/music/kieGenerateMidi
+/music/kieSeparateVocals
+/music/kieUploadExtendGenerate
+/music/lyriaNotify
+/music/notify
+/music/retryExtendSong
+/music/retryRemixSong
+/music/soundsNotify
+/music/suno/generate
+/permission/current
+
+# =====================================================================
+# 🆕 自动从新增的 AIMusic.docx 接口文档中同步追加的接口 (40 个)
+# =====================================================================
+/and/clearCache
+/and/data/generateDetailByTaskId
+/and/google/getRefreshTokenUrl
+/and/google/rtdn
+/and/home/giftBlessing
+/and/order/googleTest
+/gemini/generate
+/gemini/vertexGenerateTest
+/gemini/vertexGenerateTestNewTemplate
+/gemini/vertexGenerateaTestA
+/music/addID3Info
+/music/cqtExtendGenerate
+/music/cqtExtendNotify
+/music/cqtUploadExtendGenerate
+/music/generateSounds
+/music/getCompleteSong
+/music/getIP
+/music/getLyrics
+/music/getS3TemporaryUrl
+/music/getStatus
+/music/kieCoverNotify
+/music/kieExtendGenerate
+/music/kieExtendNotify
+/music/kieGenerateMidi
+/music/kieSeparateVocals
+/music/kieUploadExtendGenerate
+/music/lyriaNotify
+/music/notify
+/music/retryExtendSong
+/music/retryRemixSong
+/music/soundsNotify
+/music/suno/generate
+/music/suno/getTaskStatus
+/music/upload
+/music/uploadRemixAudioCqt
+/music/uploadRemixAudioKie
+/music/urlToS3
+/music/v2/getStatus
+/web/deductImages
+/web/getUserGenerateRecord
+
+# ---------------------------------------------------------------------
+# 4. Papi 接口专有路由 (Papi Gateway Endpoints)
+# ---------------------------------------------------------------------
+/papi/api/create_music_video
+/papi/api/generate_music
+/papi/api/get_record_info
+/papi/api/get_music_video_info
+/papi/api/generate_sounds
+/papi/gpt52/chat
+/papi/api/extend_music
+/papi/api/upload_extend_audio
+/papi/api/upload_cover_audio
+/papi/api/get_timestamped_lyrics
+/papi/api/generate_midi
+/papi/api/get_midi_info
+/papi/api/separate_vocals
+/papi/api/get_separate_vocals_info
+/papi/api/download_midi_file
+/papi/api/cqtai_upload_cover_music
+/papi/api/cqtai_gen_stem
+/papi/api/cqtai_extend_music
+/papi/api/cqtai_get_suno_info
+/papi/api/cqtai_upload_extend_music
+/papi/api/price_plan
+
+
+/stripe/createOneTimeCheckout
+/stripe/createSubscriptionCheckout
+

@@ -34,9 +34,9 @@ def sink_to_logging(message):
 
 logger.add(sink_to_logging, level="INFO", enqueue=True)
 
-# 添加控制台输出 (让 pytest 能够捕获并在必要时进行输出)
+# 添加控制台输出 (使用系统最底层且受保护的 sys.__stdout__，防止被 pytest 销毁流导致报错)
 logger.add(
-    sys.stdout,
+    sys.__stdout__,
     format=FORMAT,
     level="INFO",
     colorize=True, # 开启彩色高亮日志等级

@@ -15,17 +15,29 @@ def generate_email():
     date_part = now.strftime("%Y%m%d%H%M%S")
     ms_part = f"{now.microsecond // 1000:03d}"
     timestamp = date_part + ms_part
-    return f"ljkjtest{timestamp}@qq.com"
+    return f"testljkj{timestamp}@qq.com"
 
 
 # ==================== 歌名生成 ====================
 
 
 
-def get_song() -> str:
+def get_song(prefix: str = "TEST", model: str = "") -> str:
     """
-    生成测试歌名，格式: TEST-[16位十六进制时间戳]
-    例如: TEST-018f3a7c2d4e9b01
-    纳秒级时间戳保证多进程并发唯一性。
+    生成测试歌名，格式: [PREFIX]-[MODEL]-[16位十六进制时间戳]
+    例如: TEXT-V5-018f3a7c2d4e9b01
+    
+    * 使用 16位十六进制纳秒级时间戳 保证多进程/高并发时的绝对唯一性。
     """
-    return f"TEST-{time.time_ns():016x}"
+    timestamp = f"{time.time_ns():016x}"
+    
+    parts = []
+    if prefix:
+        parts.append(prefix.upper())
+    if model:
+        # 将 '+' 替换为 '_PLUS'，将 '.' 替换为 '_'，并转为大写
+        clean_model = model.replace("+", "_PLUS").replace(".", "_").upper()
+        parts.append(clean_model)
+    parts.append(timestamp)
+    
+    return "-".join(parts)
